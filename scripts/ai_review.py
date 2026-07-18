@@ -9,7 +9,11 @@ import subprocess
 import google.generativeai as genai
 
 
-GEMINI_API_KEY = os.environ["GEMINI_API_KEY"]
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+
+if not GEMINI_API_KEY:
+    raise ValueError("Missing GEMINI_API_KEY environment variable")
+
 
 genai.configure(api_key=GEMINI_API_KEY)
 
@@ -28,14 +32,14 @@ def get_python_files():
 
 
 def read_file(path):
-    with open(path, "r") as file:
+    with open(path, "r", encoding="utf-8") as file:
         return file.read()
 
 
 def review_code(filename, content):
 
     model = genai.GenerativeModel(
-        "gemini-1.5-flash"
+        "gemini-2.0-flash"
     )
 
     prompt = f"""
@@ -57,61 +61,52 @@ File:
 Code:
 ```python
 {content}
-
 """
 
-response = model.generate_content(prompt)
+    response = model.generate_content(prompt)
 
-return response.text
+    return response.text
 
 def main():
 
-files = get_python_files()
+    files = get_python_files()
 
-report = [
-    "# Gemini AI Code Review Report\n"
-]
+    if not files:
+        print("No Python files found.")
+        return
 
-for file in files:
-
-    print("Reviewing:", file)
-
-    code = read_file(file)
-
-    result = review_code(
-        file,
-        code
-    )
+    report = []
 
     report.append(
-        f"\n## {file}\n\n{result}\n"
+        "# Gemini AI Code Review Report\n"
     )
 
+    for file in files:
 
-with open(
-    "ai_review_report.txt",
-    "w"
-) as f:
-    f.write(
-        "\n".join(report)
-    )
+        print("Reviewing:", file)
 
+        code = read_file(file)
 
-print(
-    "AI review complete"
-)
+        result = review_code(
+            file,
+            code
+        )
 
-if name == "main":
-main()
+        report.append(
+            f"\n## {file}\n\n{result}\n"
+        )
 
+    with open(
+        "ai_review_report.txt",
+        "w",
+        encoding="utf-8"
+    ) as f:
+        f.write(
+            "\n".join(report)
+        )
 
-Save the file.
+    print("AI review complete")
+    print("Report saved: ai_review_report.txt")
 
----
-
-## Step 3: Commit and push the change
-
-PowerShell:
-
-```powershell
-cd C:\sample-python-app
+if __name__ == "__main__":
+    main()
